@@ -205,11 +205,14 @@
 
     <script src="js/main.js"></script>
     <!-- Lightbox -->
-    <div class="lightbox" id="lightbox">
-      <div class="close">&times;</div>
-      <div class="nav prev">&#8249;</div>
-      <div class="nav next">&#8250;</div>
-      <img src="" alt="Phóng to" />
+    <div id="lightbox" class="lightbox">
+      <div class="close" onclick="closeLightbox()">×</div>
+
+      <!-- Nút trái/phải to hơn, dễ bấm trên mobile -->
+      <div class="nav prev" onclick="changePhoto(-1)">❮</div>
+      <div class="nav next" onclick="changePhoto(1)">❯</div>
+
+      <img src="" alt="Ảnh cưới phóng to" loading="lazy" />
     </div>
   </body>
 </html>

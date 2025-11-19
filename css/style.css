@@ -372,89 +372,79 @@ body {
   }
 }
 
-/* ================== LIGHTBOX PHÓNG TO ẢNH ================== */
+/* ================== LIGHTBOX NÂNG CẤP – SWIPE + NÚT TO ================== */
 .lightbox {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.92);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(12px);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 99999;
-  opacity: 0;
-  transition: opacity 0.4s ease;
   padding: 20px;
-  box-sizing: border-box;
+  cursor: pointer; /* click ngoài ảnh cũng đóng */
 }
 
 .lightbox.open {
   display: flex;
-  opacity: 1;
 }
 
 .lightbox img {
   max-width: 96%;
   max-height: 96vh;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
   object-fit: contain;
-  transform: scale(0.9);
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.4s ease;
 }
 
-.lightbox.open img {
-  transform: scale(1);
-}
-
-/* Nút đóng */
+/* Nút đóng to hơn */
 .lightbox .close {
   position: absolute;
   top: 20px;
-  right: 25px;
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.15);
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   color: white;
-  font-size: 32px;
-  font-weight: bold;
+  font-size: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   backdrop-filter: blur(10px);
   transition: all 0.3s;
-  user-select: none;
 }
 
 .lightbox .close:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.15);
 }
 
-/* Mũi tên trái/phải (tùy chọn, rất xịn) */
+/* Nút chuyển ảnh to & đẹp */
 .lightbox .nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.15);
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
   color: white;
-  font-size: 36px;
+  font-size: 44px;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  cursor: pointer;
   backdrop-filter: blur(10px);
+  user-select: none;
   transition: all 0.3s;
 }
 
 .lightbox .nav:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-50%) scale(1.15);
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-50%) scale(1.2);
 }
 
 .lightbox .prev {
@@ -464,19 +454,29 @@ body {
   right: 20px;
 }
 
-/* Mobile: chạm 2 lần để đóng */
+/* Click ngoài ảnh để đóng */
+.lightbox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+.lightbox img {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile tối ưu */
 @media (max-width: 768px) {
-  .lightbox .close {
-    top: 15px;
-    right: 15px;
-    width: 44px;
-    height: 44px;
-    font-size: 28px;
-  }
   .lightbox .nav {
-    width: 44px;
-    height: 44px;
-    font-size: 30px;
+    width: 56px;
+    height: 56px;
+    font-size: 36px;
+  }
+  .lightbox .close {
+    width: 50px;
+    height: 50px;
+    font-size: 36px;
   }
 }
 

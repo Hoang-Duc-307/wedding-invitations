@@ -157,72 +157,65 @@ document.addEventListener("DOMContentLoaded", function () {
     const nextBtn = lightbox.querySelector(".next");
 
     let currentIndex = 0;
-    let images = []; // sẽ lưu danh sách ảnh đã load
+    let images = [];
 
-    // Lấy tất cả ảnh trong gallery (kể cả chưa hiển thị)
+    // Thu thập tất cả ảnh trong gallery (kể cả ẩn bởi "Xem thêm")
     function collectImages() {
-      images = Array.from(document.querySelectorAll("#gallery img")).map(
-        (img) => ({
-          src: img.src || img.dataset.src || img.getAttribute("data-src"),
-          el: img,
-        })
-      );
+      images = Array.from(
+        document.querySelectorAll("#gallery .gallery-item img")
+      ).map((img) => ({
+        src: img.dataset.src || img.src,
+        el: img,
+      }));
     }
 
-    // Mở lightbox
     function openLightbox(index) {
       collectImages();
-      if (index < 0 || index >= images.length) return;
-      currentIndex = index;
+      if (images.length === 0) return;
 
-      const realSrc = images[currentIndex].src;
-      if (realSrc) {
-        lbImg.src = realSrc;
-        lightbox.classList.add("open");
-        document.body.style.overflow = "hidden"; // khóa scroll
-      }
+      currentIndex = index < 0 ? images.length - 1 : index % images.length;
+      lbImg.src = images[currentIndex].src;
+
+      lightbox.classList.add("open");
+      document.body.style.overflow = "hidden";
     }
 
-    // Đóng lightbox
     function closeLightbox() {
       lightbox.classList.remove("open");
+      document.body.style.overflow = "";
       setTimeout(() => {
         lbImg.src = "";
-        document.body.style.overflow = "";
-      }, 400);
+      }, 500);
     }
 
-    // Chuyển ảnh
-    function showPrev() {
-      openLightbox(
-        currentIndex - 1 >= 0 ? currentIndex - 1 : images.length - 1
-      );
-    }
     function showNext() {
-      openLightbox((currentIndex + 1) % images.length);
+      openLightbox(currentIndex + 1);
     }
 
-    // Click vào ảnh trong gallery
+    function showPrev() {
+      openLightbox(currentIndex - 1);
+    }
+
+    // Click vào ảnh trong gallery → mở lightbox
     document.querySelector("#gallery").addEventListener("click", (e) => {
       const img = e.target.closest("img");
       if (!img) return;
-      const allImgs = Array.from(document.querySelectorAll("#gallery img"));
-      const index = allImgs.indexOf(img);
-      if (index !== -1) {
-        e.preventDefault();
-        openLightbox(index);
-      }
+      const all = Array.from(
+        document.querySelectorAll("#gallery .gallery-item img")
+      );
+      const idx = all.indexOf(img);
+      if (idx !== -1) openLightbox(idx);
     });
 
-    // Đóng khi click nút X hoặc nền
-    closeBtn.addEventListener("click", closeLightbox);
+    // Nút đóng + click nền
+    closeBtn.onclick = closeLightbox;
     lightbox.addEventListener("click", (e) => {
-      if (e.target === lightbox) closeLightbox();
+      if (e.target === lightbox || e.target === lbImg) closeLightbox();
     });
 
-    // Mũi tên
-    prevBtn.addEventListener("click", showPrev);
-    nextBtn.addEventListener("click", showNext);
+    // Nút prev/next
+    prevBtn.onclick = showPrev;
+    nextBtn.onclick = showNext;
 
     // Phím tắt
     document.addEventListener("keydown", (e) => {
@@ -232,13 +225,32 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.key === "ArrowRight") showNext();
     });
 
-    // Chạm 2 ngón (mobile) để đóng
-    let touchCount = 0;
-    lightbox.addEventListener("touchend", () => {
-      touchCount++;
-      setTimeout(() => (touchCount = 0), 500);
-      if (touchCount >= 2) closeLightbox();
-    });
+    // SWIPE TRÁI – PHẢI SIÊU MƯỢT CHO ĐIỆN THOẠI
+    let startX = 0;
+    let endX = 0;
+
+    lightbox.addEventListener(
+      "touchstart",
+      (e) => {
+        startX = e.touches[0].screenX;
+      },
+      { passive: true }
+    );
+
+    lightbox.addEventListener(
+      "touchend",
+      (e) => {
+        endX = e.changedTouches[0].screenX;
+        const diff = startX - endX;
+
+        if (Math.abs(diff) > 50) {
+          // vuốt đủ mạnh
+          if (diff > 0) showNext(); // vuốt trái → ảnh sau
+          else showPrev(); // vuốt phải → ảnh trước
+        }
+      },
+      { passive: true }
+    );
   }
 
   // Gọi sau khi gallery load xong
