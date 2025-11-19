@@ -159,7 +159,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentIndex = 0;
     let images = [];
 
-    // Thu thập tất cả ảnh trong gallery (kể cả ẩn bởi "Xem thêm")
     function collectImages() {
       images = Array.from(
         document.querySelectorAll("#gallery .gallery-item img")
@@ -174,9 +173,28 @@ document.addEventListener("DOMContentLoaded", function () {
       if (images.length === 0) return;
 
       currentIndex = index < 0 ? images.length - 1 : index % images.length;
-      lbImg.src = images[currentIndex].src;
 
-      lightbox.classList.add("open");
+      // Thêm class loading + fade-out ảnh cũ
+      lightbox.classList.add("loading");
+      lbImg.classList.add("fade-out");
+
+      const newSrc = images[currentIndex].src;
+
+      // Tạo ảnh mới để preload
+      const tempImg = new Image();
+      tempImg.src = newSrc;
+
+      tempImg.onload = () => {
+        lbImg.src = newSrc;
+        lbImg.classList.remove("fade-out");
+        lbImg.classList.add("fade-in");
+        lightbox.classList.add("open");
+        lightbox.classList.remove("loading");
+
+        // Xóa class fade-in sau khi hoàn tất
+        setTimeout(() => lbImg.classList.remove("fade-in"), 600);
+      };
+
       document.body.style.overflow = "hidden";
     }
 
@@ -185,6 +203,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.body.style.overflow = "";
       setTimeout(() => {
         lbImg.src = "";
+        lbImg.classList.remove("fade-out", "fade-in");
       }, 500);
     }
 
@@ -196,7 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
       openLightbox(currentIndex - 1);
     }
 
-    // Click vào ảnh trong gallery → mở lightbox
+    // Click ảnh trong gallery
     document.querySelector("#gallery").addEventListener("click", (e) => {
       const img = e.target.closest("img");
       if (!img) return;
@@ -213,7 +232,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.target === lightbox || e.target === lbImg) closeLightbox();
     });
 
-    // Nút prev/next
     prevBtn.onclick = showPrev;
     nextBtn.onclick = showNext;
 
@@ -225,10 +243,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.key === "ArrowRight") showNext();
     });
 
-    // SWIPE TRÁI – PHẢI SIÊU MƯỢT CHO ĐIỆN THOẠI
+    // SWIPE TRÁI/PHẢI MƯỢT NHƯ IPHONE
     let startX = 0;
-    let endX = 0;
-
     lightbox.addEventListener(
       "touchstart",
       (e) => {
@@ -240,13 +256,11 @@ document.addEventListener("DOMContentLoaded", function () {
     lightbox.addEventListener(
       "touchend",
       (e) => {
-        endX = e.changedTouches[0].screenX;
+        const endX = e.changedTouches[0].screenX;
         const diff = startX - endX;
-
-        if (Math.abs(diff) > 50) {
-          // vuốt đủ mạnh
-          if (diff > 0) showNext(); // vuốt trái → ảnh sau
-          else showPrev(); // vuốt phải → ảnh trước
+        if (Math.abs(diff) > 60) {
+          if (diff > 0) showNext();
+          else showPrev();
         }
       },
       { passive: true }
