@@ -59,10 +59,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let images = [];
     try {
-      const res = await fetch("/images.json");
+      const res = await fetch("/images.json"); // Giờ là URL external từ Google Photos
       if (res.ok) images = await res.json();
     } catch (err) {
-      console.warn("Could not load images.json", err);
+      console.warn("Không load được images.json", err);
+      return;
     }
 
     if (!images || images.length === 0) return;
@@ -70,38 +71,32 @@ document.addEventListener("DOMContentLoaded", function () {
     galleryEl.innerHTML = "";
 
     images.forEach((src, i) => {
+      // src giờ là URL đầy đủ từ Google
       const fig = document.createElement("figure");
       fig.className = "gallery-item";
 
       const img = document.createElement("img");
       img.className = "lazy";
-      img.setAttribute("data-src", src);
+      img.setAttribute("data-src", src); // URL external
       img.alt = `Ảnh cưới ${i + 1}`;
-      img.loading = "lazyy"; // hỗ trợ lazy tốt hơn
+      img.loading = "lazy"; // Tối ưu thêm
 
       fig.appendChild(img);
       galleryEl.appendChild(fig);
     });
 
-    // === CÀI ĐẶT MỚI: HIỂN THỊ 8 ẢNH ĐẦU, ĐẸP NHƯ CINELOVE ===
+    // Phần còn lại giữ nguyên: load more, lazy load...
     const perPage = 8;
     const items = galleryEl.querySelectorAll(".gallery-item");
-
     items.forEach((item, idx) => {
       if (idx >= perPage) item.classList.add("hidden");
     });
 
-    // === TẠO NÚT "XEM THÊM" SIÊU ĐẸP ===
     let loadMoreBtn = document.getElementById("loadMore");
     if (!loadMoreBtn) {
       loadMoreBtn = document.createElement("button");
       loadMoreBtn.id = "loadMore";
-      loadMoreBtn.innerHTML = `
-      <span>Xem thêm ảnh</span>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M7 17L17 7M17 7H7M17 7V17"/>
-      </svg>
-    `;
+      loadMoreBtn.innerHTML = "<span>Xem thêm</span>";
       loadMoreBtn.className = "load-more-btn";
       galleryEl.parentNode.appendChild(loadMoreBtn);
     }
@@ -115,15 +110,11 @@ document.addEventListener("DOMContentLoaded", function () {
         items[i].classList.remove("hidden");
       }
       shown = nextCount;
-
-      if (shown >= items.length) {
-        loadMoreBtn.style.opacity = "0";
-        setTimeout(() => loadMoreBtn.remove(), 400);
-      }
+      if (shown >= items.length) loadMoreBtn.style.display = "none";
       observeLazyImages();
     });
 
-    // === LAZY LOAD ===
+    // Lazy load (giờ tải từ external URL siêu nhanh)
     let io;
     function observeLazyImages() {
       const lazyImgs = galleryEl.querySelectorAll("img.lazy:not(.loaded)");
@@ -134,8 +125,10 @@ document.addEventListener("DOMContentLoaded", function () {
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
                 const img = entry.target;
-                img.src = img.dataset.src;
+                img.src = img.dataset.src; // Load URL external
                 img.onload = () => img.classList.add("loaded");
+                img.onerror = () =>
+                  console.warn("Lỗi load ảnh:", img.dataset.src); // Debug nếu lỗi
                 img.removeAttribute("data-src");
                 io.unobserve(img);
               }
