@@ -1,0 +1,289 @@
+document.addEventListener("DOMContentLoaded", function () {
+  const toggle = document.querySelector(".menu-toggle");
+  const nav = document.querySelector(".main-nav");
+  const envelope = document.getElementById("envelope");
+  const overlay = document.querySelector(".envelope-overlay");
+  // Click nút "Mở thiệp" hoặc click vào phong bì đều mở được
+  // if (sessionStorage.getItem("envelopeOpened")) {
+  //   overlay.classList.add("closed");
+  //   return;
+  // }
+
+  // function open() {
+  //   envelope.classList.add("open");
+  //   setTimeout(() => {
+  //     overlay.classList.add("closed");
+  //     sessionStorage.setItem("envelopeOpened", "true");
+  //   }, 2600);
+  // }
+
+  // envelope.addEventListener("click", open);
+  // document.querySelector(".open-letter").addEventListener("click", (e) => {
+  //   e.stopPropagation();
+  //   open();
+  // });
+
+  // // Nếu người dùng đã mở rồi (trở lại trang), bỏ qua envelope
+  // if (sessionStorage.getItem("envelopeOpened")) {
+  //   overlay.classList.add("closed");
+  //   startCountdown();
+  // } else {
+  //   // Lưu trạng thái đã mở (chỉ hiện 1 lần mỗi phiên)
+  //   envelope.addEventListener("click", () => {
+  //     sessionStorage.setItem("envelopeOpened", "true");
+  //   });
+  // }
+  toggle &&
+    toggle.addEventListener("click", () => {
+      if (nav.style.display === "block") nav.style.display = "none";
+      else nav.style.display = "block";
+    });
+
+  const form = document.querySelector(".rsvp-form");
+  form &&
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = form.querySelector("input").value.trim();
+      const choice = form.querySelector("select").value;
+      if (!name) {
+        alert("Vui lòng nhập họ và tên");
+        return;
+      }
+      alert(`Cảm ơn ${name}. Bạn đã chọn: ${choice}`);
+      form.reset();
+    });
+
+  async function initGallery() {
+    const galleryEl = document.querySelector("#gallery .grid");
+    if (!galleryEl) return;
+
+    let images = [];
+    try {
+      const res = await fetch("/images.json");
+      if (res.ok) images = await res.json();
+    } catch (err) {
+      console.warn("Could not load images.json", err);
+    }
+
+    if (!images || images.length === 0) return;
+
+    galleryEl.innerHTML = "";
+
+    images.forEach((src, i) => {
+      const fig = document.createElement("figure");
+      fig.className = "gallery-item";
+
+      const img = document.createElement("img");
+      img.className = "lazy";
+      img.setAttribute("data-src", src);
+      img.alt = `Ảnh cưới ${i + 1}`;
+      img.loading = "lazyy"; // hỗ trợ lazy tốt hơn
+
+      fig.appendChild(img);
+      galleryEl.appendChild(fig);
+    });
+
+    // === CÀI ĐẶT MỚI: HIỂN THỊ 8 ẢNH ĐẦU, ĐẸP NHƯ CINELOVE ===
+    const perPage = 8;
+    const items = galleryEl.querySelectorAll(".gallery-item");
+
+    items.forEach((item, idx) => {
+      if (idx >= perPage) item.classList.add("hidden");
+    });
+
+    // === TẠO NÚT "XEM THÊM" SIÊU ĐẸP ===
+    let loadMoreBtn = document.getElementById("loadMore");
+    if (!loadMoreBtn) {
+      loadMoreBtn = document.createElement("button");
+      loadMoreBtn.id = "loadMore";
+      loadMoreBtn.innerHTML = `
+      <span>Xem thêm ảnh</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M7 17L17 7M17 7H7M17 7V17"/>
+      </svg>
+    `;
+      loadMoreBtn.className = "load-more-btn";
+      galleryEl.parentNode.appendChild(loadMoreBtn);
+    }
+
+    let shown = perPage;
+    if (shown >= items.length) loadMoreBtn.style.display = "none";
+
+    loadMoreBtn.addEventListener("click", () => {
+      const nextCount = Math.min(shown + 8, items.length);
+      for (let i = shown; i < nextCount; i++) {
+        items[i].classList.remove("hidden");
+      }
+      shown = nextCount;
+
+      if (shown >= items.length) {
+        loadMoreBtn.style.opacity = "0";
+        setTimeout(() => loadMoreBtn.remove(), 400);
+      }
+      observeLazyImages();
+    });
+
+    // === LAZY LOAD ===
+    let io;
+    function observeLazyImages() {
+      const lazyImgs = galleryEl.querySelectorAll("img.lazy:not(.loaded)");
+      if ("IntersectionObserver" in window) {
+        if (io) io.disconnect();
+        io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.onload = () => img.classList.add("loaded");
+                img.removeAttribute("data-src");
+                io.unobserve(img);
+              }
+            });
+          },
+          { rootMargin: "100px" }
+        );
+
+        lazyImgs.forEach((img) => io.observe(img));
+      } else {
+        lazyImgs.forEach((img) => {
+          img.src = img.dataset.src;
+          img.classList.add("loaded");
+        });
+      }
+    }
+    observeLazyImages();
+  }
+
+  // ================== LIGHTBOX PHÓNG TO ẢNH ==================
+  function initLightbox() {
+    const lightbox = document.getElementById("lightbox");
+    const lbImg = lightbox.querySelector("img");
+    const closeBtn = lightbox.querySelector(".close");
+    const prevBtn = lightbox.querySelector(".prev");
+    const nextBtn = lightbox.querySelector(".next");
+
+    let currentIndex = 0;
+    let images = []; // sẽ lưu danh sách ảnh đã load
+
+    // Lấy tất cả ảnh trong gallery (kể cả chưa hiển thị)
+    function collectImages() {
+      images = Array.from(document.querySelectorAll("#gallery img")).map(
+        (img) => ({
+          src: img.src || img.dataset.src || img.getAttribute("data-src"),
+          el: img,
+        })
+      );
+    }
+
+    // Mở lightbox
+    function openLightbox(index) {
+      collectImages();
+      if (index < 0 || index >= images.length) return;
+      currentIndex = index;
+
+      const realSrc = images[currentIndex].src;
+      if (realSrc) {
+        lbImg.src = realSrc;
+        lightbox.classList.add("open");
+        document.body.style.overflow = "hidden"; // khóa scroll
+      }
+    }
+
+    // Đóng lightbox
+    function closeLightbox() {
+      lightbox.classList.remove("open");
+      setTimeout(() => {
+        lbImg.src = "";
+        document.body.style.overflow = "";
+      }, 400);
+    }
+
+    // Chuyển ảnh
+    function showPrev() {
+      openLightbox(
+        currentIndex - 1 >= 0 ? currentIndex - 1 : images.length - 1
+      );
+    }
+    function showNext() {
+      openLightbox((currentIndex + 1) % images.length);
+    }
+
+    // Click vào ảnh trong gallery
+    document.querySelector("#gallery").addEventListener("click", (e) => {
+      const img = e.target.closest("img");
+      if (!img) return;
+      const allImgs = Array.from(document.querySelectorAll("#gallery img"));
+      const index = allImgs.indexOf(img);
+      if (index !== -1) {
+        e.preventDefault();
+        openLightbox(index);
+      }
+    });
+
+    // Đóng khi click nút X hoặc nền
+    closeBtn.addEventListener("click", closeLightbox);
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    // Mũi tên
+    prevBtn.addEventListener("click", showPrev);
+    nextBtn.addEventListener("click", showNext);
+
+    // Phím tắt
+    document.addEventListener("keydown", (e) => {
+      if (!lightbox.classList.contains("open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") showPrev();
+      if (e.key === "ArrowRight") showNext();
+    });
+
+    // Chạm 2 ngón (mobile) để đóng
+    let touchCount = 0;
+    lightbox.addEventListener("touchend", () => {
+      touchCount++;
+      setTimeout(() => (touchCount = 0), 500);
+      if (touchCount >= 2) closeLightbox();
+    });
+  }
+
+  // Gọi sau khi gallery load xong
+  initGallery();
+  initLightbox(); // thêm dòng này
+
+  // --- Countdown timer ---
+  function initCountdown() {
+    // target date: 2025-08-20 12:00 local
+    const target = new Date(2025, 10, 30, 11, 0, 0); // month is 0-based: 7 -> August
+    const elDays = document.querySelector(".countdown .days");
+    const elHours = document.querySelector(".countdown .hours");
+    const elMinutes = document.querySelector(".countdown .minutes");
+    const elSeconds = document.querySelector(".countdown .seconds");
+    if (!elDays) return;
+
+    function tick() {
+      const now = new Date();
+      let diff = Math.max(0, target - now);
+      if (diff <= 0) {
+        elDays.textContent = "0";
+        elHours.textContent = "0";
+        elMinutes.textContent = "0";
+        elSeconds.textContent = "0";
+        clearInterval(timer);
+        return;
+      }
+      const sec = Math.floor(diff / 1000) % 60;
+      const min = Math.floor(diff / 1000 / 60) % 60;
+      const hrs = Math.floor(diff / 1000 / 60 / 60) % 24;
+      const days = Math.floor(diff / 1000 / 60 / 60 / 24);
+      elDays.textContent = String(days);
+      elHours.textContent = String(hrs).padStart(2, "0");
+      elMinutes.textContent = String(min).padStart(2, "0");
+      elSeconds.textContent = String(sec).padStart(2, "0");
+    }
+    tick();
+    const timer = setInterval(tick, 1000);
+  }
+  initCountdown();
+});
